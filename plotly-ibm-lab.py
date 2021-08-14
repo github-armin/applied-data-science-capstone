@@ -48,11 +48,18 @@ app.layout = html.Div(
         # If a specific launch site was selected, show the Success vs. Failed counts for the site
         html.Div(dcc.Graph(id="pie_chart")),
         html.Br(),
+        html.Hr(),
+        html.Br(),
         html.P("Payload range (Kg):"),
         # TASK 3: Add a slider to select payload range
-        # dcc.RangeSlider(id="payload-slider",...)
+        dcc.RangeSlider(
+            id="scatter_chart_range_slider",
+            min=min_payload,
+            max=max_payload,
+            step=1000,
+            value=[min_payload, max_payload]),
         # TASK 4: Add a scatter chart to show the correlation between payload and launch success
-        html.Div(dcc.Graph(id="success_payload_scatter_chart")),
+        html.Div(dcc.Graph(id="scatter_chart")),
     ]
 )
 
@@ -67,25 +74,52 @@ app.layout = html.Div(
            component_property="value")]
 )
 def update_graph(pie_chart_multi_select_dropdown):
-    show_launch_sites = launch_sites if pie_chart_multi_select_dropdown == "All Sites" else [
+    selected_launch_sites = launch_sites if pie_chart_multi_select_dropdown == "All Sites" else [
         pie_chart_multi_select_dropdown]
     dff = spacex_df
     dff = dff[dff["Launch Site"].isin(
-        show_launch_sites)]
-    if len(show_launch_sites) > 1:
+        selected_launch_sites)]
+    if len(selected_launch_sites) > 1:
         dff = spacex_df[spacex_df["class"] == 1]
-    names = "Launch Site" if len(show_launch_sites) > 1 else "class"
-    title = "Total Success Launches by Site:" if pie_chart_multi_select_dropdown == "All Sites" else f"Total Success Launches for Site {pie_chart_multi_select_dropdown}"
-    piechart = px.pie(
+    names = "Launch Site" if len(selected_launch_sites) > 1 else "class"
+    title = "Total Success Launches by Site" if pie_chart_multi_select_dropdown == "All Sites" else f"Total Success Launches for Site {pie_chart_multi_select_dropdown}"
+    pie_chart = px.pie(
         data_frame=dff,
         names=names,
         title=title
     )
-    return piechart
+    return pie_chart
 
 
 # TASK 4:
-# Add a callback function for `pie_chart_multi_select_dropdown` and `payload-slider` as inputs, `success_payload_scatter_chart` as output
+# Add a callback function for`scatter_chart_range_slider` as inputs, `scatter_chart` as output
+@app.callback(
+    Output(component_id="scatter_chart",
+           component_property="figure"),
+    [Input(component_id="pie_chart_multi_select_dropdown",
+           component_property="value"),
+     Input(component_id="scatter_chart_range_slider",
+           component_property="value")]
+)
+def update_graph(pie_chart_multi_select_dropdown, scatter_chart_range_slider):
+    selected_launch_sites = launch_sites if pie_chart_multi_select_dropdown == "All Sites" else [
+        pie_chart_multi_select_dropdown]
+    dff = spacex_df
+    dff = dff[dff["Launch Site"].isin(
+        selected_launch_sites)]
+    dff = dff[(dff["Payload Mass (kg)"] >= scatter_chart_range_slider[0]) & (
+        dff["Payload Mass (kg)"] <= scatter_chart_range_slider[1])]
+    title = "Correlation between Payload Size and Success for all Sites" if pie_chart_multi_select_dropdown == "All Sites" else f"Correlation between Payload Size and Success for Site {pie_chart_multi_select_dropdown}"
+    scatter_chart = px.scatter(
+        data_frame=dff,
+        x="Payload Mass (kg)",
+        y="class",
+        title=title,
+        color="Booster Version Category"
+    )
+    return scatter_chart
+
+
 # Run the app
 if __name__ == "__main__":
     app.run_server()
