@@ -41,7 +41,7 @@ app.layout = html.Div(
             placeholder="Select a Launch Site here",
             style={"width": "80%", "font-size": "20px",
                    "text-align-last": "center"},
-            searchable=True
+            searchable=False
         ),
         html.Br(),
         # TASK 2: Add a pie chart to show the total successful launches count for all sites
